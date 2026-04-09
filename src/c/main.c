@@ -377,8 +377,8 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     Player *p=cur_player();
     int top_y=big?4:2;
     if(s_num_players>1) {
-      draw_token(ctx,w/2,top_y+2,p->icon,true);
-      top_y+=big?16:14;
+      draw_token(ctx,w/2,top_y+12,p->icon,true);
+      top_y+=big?22:18;
     }
     graphics_context_set_text_color(ctx,GColorWhite);
     char sbuf[32];
@@ -565,13 +565,15 @@ static bool pos_valid(int pos) {
   if(pos<NUM_DICE) {
     if(!s_active[pos]) return false;
     if(s_locked[pos]) return false;
-    // Skip kept dice that are part of an auto-selected group (non-1/5)
-    // Only stop on kept dice if they're individually toggleable (1s and 5s)
-    if(s_kept[pos]) {
-      int v=s_dice[pos];
-      return (v==1||v==5);
-    }
-    return die_can_score(pos);
+    // Unkept dice that can score — always navigable
+    if(!s_kept[pos]) return die_can_score(pos);
+    // Kept 1s/5s — can individually deselect
+    int v=s_dice[pos];
+    if(v==1||v==5) return true;
+    // Kept non-1/5 (triplet) — stop on the FIRST one only so player can deselect the group
+    for(int j=0;j<pos;j++)
+      if(s_active[j]&&s_kept[j]&&s_dice[j]==v) return false;  // Not the first — skip
+    return true;  // First of the group — navigable
   }
   if(pos==POS_ROLL||pos==POS_BANK) return s_select_score>0;
   return false;
