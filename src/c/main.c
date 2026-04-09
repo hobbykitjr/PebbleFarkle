@@ -478,7 +478,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     #endif
     for(int i=0; i<10 && ly < h-pad-lh; i++) {
       graphics_draw_text(ctx, lines[i], sf,
-        GRect(pad+8, ly, w-pad*2-16, lh), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+        GRect(pad+8, ly, w-pad*2-16, lh), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
       ly += lh;
     }
   }
