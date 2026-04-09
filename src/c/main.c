@@ -620,15 +620,29 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
     if(s_cursor<NUM_DICE){
       int i=s_cursor;
       if(s_active[i]&&!s_locked[i]){
-        int v=s_dice[i]; bool is_single=(v==1||v==5);
+        int v=s_dice[i];
+        // Count unkept matching dice to decide single vs triplet
+        int unkept=0;
+        for(int j=0;j<NUM_DICE;j++)
+          if(s_active[j]&&!s_locked[j]&&!s_kept[j]&&s_dice[j]==v) unkept++;
+        bool as_triple=(unkept>=3);
+
         if(s_kept[i]){
-          if(is_single) s_kept[i]=false;
-          else { int rm=0; for(int j=NUM_DICE-1;j>=0;j--)
-            if(s_active[j]&&!s_locked[j]&&s_dice[j]==v&&s_kept[j]&&rm<3){s_kept[j]=false;rm++;}}
+          // Deselect
+          if(as_triple || (v!=1&&v!=5)) {
+            int rm=0; for(int j=NUM_DICE-1;j>=0;j--)
+              if(s_active[j]&&!s_locked[j]&&s_dice[j]==v&&s_kept[j]&&rm<3){s_kept[j]=false;rm++;}
+          } else {
+            s_kept[i]=false;
+          }
         } else if(die_can_score(i)){
-          if(is_single) s_kept[i]=true;
-          else { int pk=0; for(int j=0;j<NUM_DICE;j++)
-            if(s_active[j]&&!s_locked[j]&&s_dice[j]==v&&pk<3){s_kept[j]=true;pk++;}}
+          // Select: triplet if 3+ available, else individual (1s/5s only)
+          if(as_triple) {
+            int pk=0; for(int j=0;j<NUM_DICE;j++)
+              if(s_active[j]&&!s_locked[j]&&s_dice[j]==v&&!s_kept[j]&&pk<3){s_kept[j]=true;pk++;}
+          } else {
+            s_kept[i]=true;
+          }
         }
         s_select_score=calc_selected_score();
         if(s_select_score>0) s_cursor=POS_ROLL;
