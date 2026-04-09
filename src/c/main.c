@@ -320,12 +320,6 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     const char *opts[]={"Solo","2 Players","3 Players","4 Players","5 Players","6 Players"};
     int cy=h*42/100;
 
-    // Arrows
-    graphics_draw_text(ctx,"^",f_md,
-      GRect(0,cy-28,w,22),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-    graphics_draw_text(ctx,"v",f_md,
-      GRect(0,cy+26,w,22),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-
     // Current selection (big, highlighted)
     #ifdef PBL_COLOR
     graphics_context_set_fill_color(ctx,GColorFromHEX(0x006600));
