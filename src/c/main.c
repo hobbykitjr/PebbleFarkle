@@ -338,7 +338,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
 
     // High score under Solo option
     graphics_context_set_text_color(ctx,GColorWhite);
-    if(s_setup_cursor==0 && s_hi_score>0) {
+    if(s_hi_score>0) {
       char hbuf[32];
       snprintf(hbuf,sizeof(hbuf),"Best: %d in %d rounds",s_hi_score,s_hi_rounds);
       #ifdef PBL_COLOR
