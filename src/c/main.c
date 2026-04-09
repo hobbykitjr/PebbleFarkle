@@ -99,16 +99,18 @@ static void draw_icon(GContext *ctx, int cx, int cy, int icon, int sz) {
       graphics_fill_rect(ctx, GRect(cx-r+1,cy+r-2,2,2), 0, GCornerNone);
       graphics_fill_rect(ctx, GRect(cx+r-2,cy+r-2,2,2), 0, GCornerNone);
       break;
-    case ICN_HEART:
-      graphics_fill_circle(ctx, GPoint(cx-r/2,cy-r/3), r/2+1);
-      graphics_fill_circle(ctx, GPoint(cx+r/2,cy-r/3), r/2+1);
-      graphics_fill_rect(ctx, GRect(cx-r,cy-1,sz,r), 0, GCornerNone);
-      // Point at bottom
-      for(int y=0;y<r;y++) {
-        int w2=r-y;
-        graphics_fill_rect(ctx, GRect(cx-w2,cy+y,w2*2+1,1), 0, GCornerNone);
+    case ICN_HEART: {
+      // Two bumps on top, tapered point at bottom
+      int hr=r*2/3;
+      graphics_fill_circle(ctx, GPoint(cx-hr,cy-hr/2), hr);
+      graphics_fill_circle(ctx, GPoint(cx+hr,cy-hr/2), hr);
+      // Fill middle and taper down
+      for(int y=0;y<=r+2;y++) {
+        int w2=r+2-y*r/(r+2);
+        if(w2>0) graphics_fill_rect(ctx, GRect(cx-w2,cy-2+y,w2*2+1,1), 0, GCornerNone);
       }
       break;
+    }
     case ICN_DIAMOND:
       for(int y=-r;y<=r;y++) {
         int w2=r-abs(y);
