@@ -311,14 +311,14 @@ static void canvas_proc(Layer *l, GContext *ctx) {
              s_kept[i], s_locked[i], s_active[i]);
   }
 
-  // Top: total score
+  // Top line: Turn # (smallest)
   graphics_context_set_text_color(ctx, GColorWhite);
   char sbuf[32];
-  snprintf(sbuf, sizeof(sbuf), "%d/10K  Turn %d", s_total_score, s_turns);
-  graphics_draw_text(ctx, sbuf, f_md,
-    GRect(0, big?8:4, w, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  snprintf(sbuf, sizeof(sbuf), "Turn %d", s_turns);
+  graphics_draw_text(ctx, sbuf, f_sm,
+    GRect(0, big?6:2, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
-  // Turn info line: turn score + roll number
+  // Second line: turn score
   {
     char tbuf[32];
     int ts = s_turn_score + s_select_score;
@@ -331,7 +331,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       graphics_context_set_text_color(ctx, GColorYellow);
       #endif
       graphics_draw_text(ctx, tbuf, f_sm,
-        GRect(0, big?30:22, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+        GRect(0, big?20:14, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
       graphics_context_set_text_color(ctx, GColorWhite);
     }
   }
@@ -366,7 +366,8 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     } else {
       int total = s_turn_score + s_select_score;
       bool can_bank = (s_total_score > 0 || total >= MIN_OPEN);
-      int btn_w = w/2-10;
+      int margin = big ? 30 : 10;
+      int btn_w = (w - margin*2 - 10) / 2;
 
       // Roll button
       bool roll_hl = (s_cursor == POS_ROLL);
@@ -375,10 +376,10 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       #else
       graphics_context_set_fill_color(ctx, roll_hl ? GColorWhite : GColorDarkGray);
       #endif
-      graphics_fill_rect(ctx, GRect(5, bot_y, btn_w, 20), 4, GCornersAll);
+      graphics_fill_rect(ctx, GRect(margin, bot_y, btn_w, 18), 4, GCornersAll);
       graphics_context_set_text_color(ctx, roll_hl ? GColorBlack : GColorWhite);
       graphics_draw_text(ctx, "Roll", f_sm,
-        GRect(5, bot_y+1, btn_w, 18), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+        GRect(margin, bot_y, btn_w, 18), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
       // Bank button
       bool bank_hl = (s_cursor == POS_BANK);
@@ -387,12 +388,12 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       #else
       graphics_context_set_fill_color(ctx, bank_hl ? GColorWhite : GColorDarkGray);
       #endif
-      graphics_fill_rect(ctx, GRect(w/2+5, bot_y, btn_w, 20), 4, GCornersAll);
+      graphics_fill_rect(ctx, GRect(margin+btn_w+10, bot_y, btn_w, 18), 4, GCornersAll);
       char bbuf[16];
       snprintf(bbuf, sizeof(bbuf), "Bank %d", total);
       graphics_context_set_text_color(ctx, bank_hl ? GColorBlack : GColorWhite);
       graphics_draw_text(ctx, bbuf, f_sm,
-        GRect(w/2+5, bot_y+1, btn_w, 18), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+        GRect(margin+btn_w+10, bot_y, btn_w, 18), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
       graphics_context_set_text_color(ctx, GColorWhite);
     }
 
@@ -444,6 +445,14 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       GRect(0, bot_y+24, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_draw_text(ctx, "SELECT for new game", f_sm,
       GRect(0, bot_y+38, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  }
+
+  // Bottom: total score (large)
+  if(s_state != ST_WIN) {
+    snprintf(sbuf, sizeof(sbuf), "%d / 10K", s_total_score);
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, sbuf, f_md,
+      GRect(0, h-(big?32:26), w, 24), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
 
   // Scoring reference overlay (hold UP)
