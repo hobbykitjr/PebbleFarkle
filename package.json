@@ -1,0 +1,23 @@
+{
+  "name": "pebble-farkle",
+  "author": "Hobbykitjr",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Pixel Farkle",
+    "uuid": "f4a1b2c3-d5e6-7f89-0a1b-c2d3e4f5a6b7",
+    "sdkVersion": "3",
+    "enableMultiJS": false,
+    "targetPlatforms": ["chalk", "emery", "gabbro"],
+    "capabilities": [],
+    "messageKeys": {},
+    "watchapp": {
+      "watchface": false
+    },
+    "resources": {
+      "media": []
+    }
+  }
+}
