@@ -10,7 +10,7 @@
     "uuid": "f4a1b2c3-d5e6-7f89-0a1b-c2d3e4f5a6b7",
     "sdkVersion": "3",
     "enableMultiJS": false,
-    "targetPlatforms": ["chalk", "emery", "gabbro"],
+    "targetPlatforms": ["emery", "gabbro"],
     "capabilities": [],
     "messageKeys": {},
     "watchapp": {
