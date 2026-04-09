@@ -336,15 +336,20 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       graphics_context_set_text_color(ctx, GColorGreen);
       #endif
     }
-    graphics_draw_text(ctx, has_sel ? "UP: Roll" : "Select dice...", f_sm,
-      GRect(0, bot_y, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
-    graphics_context_set_text_color(ctx, GColorWhite);
-
-    // Bank button
-    if(has_sel) {
+    if(!has_sel) {
+      graphics_draw_text(ctx, "SELECT to keep dice", f_sm,
+        GRect(0, bot_y, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    } else {
       int total = s_turn_score + s_select_score;
       bool can_bank = (s_total_score > 0 || total >= MIN_OPEN);
-      snprintf(bbuf, sizeof(bbuf), "DOWN: Bank %d", total);
+      // Show actions
+      #ifdef PBL_COLOR
+      graphics_context_set_text_color(ctx, GColorGreen);
+      #endif
+      graphics_draw_text(ctx, "Hold SEL: Roll", f_sm,
+        GRect(0, bot_y, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+      char bbuf[24];
+      snprintf(bbuf, sizeof(bbuf), "BACK: Bank %d", total);
       #ifdef PBL_COLOR
       graphics_context_set_text_color(ctx, can_bank ? GColorCyan : GColorDarkGray);
       #endif
@@ -431,44 +436,51 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
   if(s_canvas) layer_mark_dirty(s_canvas);
 }
 
+// Long press SELECT = Roll remaining dice
+static void select_long(ClickRecognizerRef ref, void *ctx) {
+  if(s_state == ST_SELECT && s_select_score > 0) {
+    lock_selected();
+    roll_dice();
+  }
+  if(s_canvas) layer_mark_dirty(s_canvas);
+}
+
 static void up_click(ClickRecognizerRef ref, void *ctx) {
   if(s_state == ST_SELECT) {
-    if(s_select_score > 0) {
-      // UP = Roll remaining dice
-      lock_selected();
-      roll_dice();
-    } else {
-      // Move cursor
-      do {
-        s_cursor = (s_cursor + NUM_DICE - 1) % NUM_DICE;
-      } while(!s_active[s_cursor] && s_cursor < NUM_DICE);
-    }
+    // Always move cursor up/left
+    int start = s_cursor;
+    do {
+      s_cursor = (s_cursor + NUM_DICE - 1) % NUM_DICE;
+    } while(!s_active[s_cursor] && s_cursor != start);
   }
   if(s_canvas) layer_mark_dirty(s_canvas);
 }
 
 static void down_click(ClickRecognizerRef ref, void *ctx) {
   if(s_state == ST_SELECT) {
-    if(s_select_score > 0) {
-      // DOWN = Bank
-      s_turn_score += s_select_score;
-      bank_score();
-    } else {
-      // Move cursor
-      do {
-        s_cursor = (s_cursor + 1) % NUM_DICE;
-      } while(!s_active[s_cursor] && s_cursor < NUM_DICE);
-    }
+    // Always move cursor down/right
+    int start = s_cursor;
+    do {
+      s_cursor = (s_cursor + 1) % NUM_DICE;
+    } while(!s_active[s_cursor] && s_cursor != start);
   }
   if(s_canvas) layer_mark_dirty(s_canvas);
 }
 
+// BACK = Bank score (when dice selected), or exit game
 static void back_click(ClickRecognizerRef ref, void *ctx) {
-  window_stack_pop(true);
+  if(s_state == ST_SELECT && s_select_score > 0) {
+    s_turn_score += s_select_score;
+    bank_score();
+    if(s_canvas) layer_mark_dirty(s_canvas);
+  } else {
+    window_stack_pop(true);
+  }
 }
 
 static void click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 500, select_long, NULL);
   window_single_click_subscribe(BUTTON_ID_UP, up_click);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click);
   window_single_click_subscribe(BUTTON_ID_BACK, back_click);
