@@ -86,10 +86,16 @@ static int s_cursor = 0;
 static int s_turn_score = 0;
 static int s_select_score = 0;
 static int s_rolls = 0;
-static int s_turns = 0;
+static int s_rounds = 0;            // Rounds (all players played = 1 round)
 static int s_dice_remaining = 6;
 static bool s_show_help = false;    // Hold DOWN: scoring reference
 static bool s_show_scores = false;  // Hold UP: scoreboard
+
+// High score persistence
+#define P_HI_SCORE  0
+#define P_HI_ROUNDS 1
+static int s_hi_score = 0;
+static int s_hi_rounds = 0;
 
 // Draw player token (Font Awesome icon, colored)
 static void draw_token(GContext *ctx, int cx, int cy, int icon, bool large) {
@@ -165,7 +171,6 @@ static void roll_dice(void) {
     s_active[i]=false;
     if(!s_locked[i]){ s_dice[i]=(rand()%6)+1; s_kept[i]=false; s_active[i]=true; s_dice_remaining++; }
   }
-  if(s_rolls==0) s_turns++;
   s_rolls++;
   if(!has_scoring_dice()){
     s_state=ST_FARKLE; s_turn_score=0; vibes_long_pulse();
@@ -188,6 +193,7 @@ static void new_turn(void) {
 
 static void next_player(void) {
   s_cur_idx = (s_cur_idx+1) % s_num_players;
+  if(s_cur_idx == 0) s_rounds++;  // All players went = new round
   new_turn();
 }
 
@@ -197,7 +203,17 @@ static void bank_score(void) {
   if(p->score==0 && total<MIN_OPEN) return;
   p->score+=total;
   s_state=ST_BANKED;
-  if(p->score>=WIN_SCORE) s_state=ST_WIN;
+  if(p->score>=WIN_SCORE) {
+    s_state=ST_WIN;
+    // Save high score: better score in same/fewer rounds, or same score in fewer rounds
+    if(s_hi_score==0 || s_rounds<s_hi_rounds ||
+       (s_rounds==s_hi_rounds && p->score>s_hi_score)) {
+      s_hi_score=p->score;
+      s_hi_rounds=s_rounds;
+      persist_write_int(P_HI_SCORE,s_hi_score);
+      persist_write_int(P_HI_ROUNDS,s_hi_rounds);
+    }
+  }
   vibes_short_pulse();
 }
 
@@ -231,7 +247,7 @@ static void init_game(void) {
   }
   shuffle_order();
   s_cur_idx=0;
-  s_turns=0;
+  s_rounds=1;
 }
 
 // ============================================================================
@@ -320,11 +336,23 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     graphics_draw_text(ctx,opts[s_setup_cursor],f_lg,
       GRect(0,cy-2,w,30),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
 
+    // High score under Solo option
     graphics_context_set_text_color(ctx,GColorWhite);
+    if(s_setup_cursor==0 && s_hi_score>0) {
+      char hbuf[32];
+      snprintf(hbuf,sizeof(hbuf),"Best: %d in %d rounds",s_hi_score,s_hi_rounds);
+      #ifdef PBL_COLOR
+      graphics_context_set_text_color(ctx,GColorYellow);
+      #endif
+      graphics_draw_text(ctx,hbuf,f_sm,
+        GRect(0,cy+32,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+      graphics_context_set_text_color(ctx,GColorWhite);
+    }
+
     graphics_draw_text(ctx,"SELECT to start",f_sm,
-      GRect(0,h*68/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+      GRect(0,h*72/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
     graphics_draw_text(ctx,"Hold DOWN: Rules",f_sm,
-      GRect(0,h*76/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+      GRect(0,h*80/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
   }
 
   // ======== TOKEN SCREEN (multiplayer) ========
@@ -382,7 +410,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     }
     graphics_context_set_text_color(ctx,GColorWhite);
     char sbuf[32];
-    snprintf(sbuf,sizeof(sbuf),"Turn %d",s_turns);
+    snprintf(sbuf,sizeof(sbuf),"Round %d",s_rounds);
     graphics_draw_text(ctx,sbuf,f_sm,
       GRect(0,top_y,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
 
@@ -492,7 +520,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       graphics_draw_text(ctx,wbuf,f_lg,
         GRect(0,bot_y-4,w,32),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
       graphics_context_set_text_color(ctx,GColorWhite);
-      char tbuf2[24]; snprintf(tbuf2,sizeof(tbuf2),"%d pts in %d turns",p->score,s_turns);
+      char tbuf2[24]; snprintf(tbuf2,sizeof(tbuf2),"%d pts in %d rounds",p->score,s_rounds);
       graphics_draw_text(ctx,tbuf2,f_sm,
         GRect(0,bot_y+24,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
       graphics_draw_text(ctx,"SELECT for new game",f_sm,
@@ -664,7 +692,8 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
     }
   }
   else if(s_state==ST_FARKLE||s_state==ST_BANKED){
-    if(s_num_players>1) next_player(); else new_turn();
+    if(s_num_players>1) next_player();
+    else { s_rounds++; new_turn(); }
   }
   else if(s_state==ST_WIN){
     s_state=ST_SETUP; s_setup_cursor=0;
@@ -748,6 +777,8 @@ static void win_unload(Window *w) {
 // ============================================================================
 static void init(void) {
   srand(time(NULL));
+  if(persist_exists(P_HI_SCORE)) s_hi_score=persist_read_int(P_HI_SCORE);
+  if(persist_exists(P_HI_ROUNDS)) s_hi_rounds=persist_read_int(P_HI_ROUNDS);
   s_icon_font_20=fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ICON_FONT_20));
   s_icon_font_14=fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ICON_FONT_14));
   s_win=window_create();
