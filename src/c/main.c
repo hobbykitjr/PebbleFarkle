@@ -99,9 +99,16 @@ static void draw_token(GContext *ctx, int cx, int cy, int icon, bool large) {
   graphics_context_set_text_color(ctx, GColorWhite);
   #endif
   GFont f = large ? s_icon_font_20 : s_icon_font_14;
-  int sz = large ? 24 : 18;
+  int sz = large ? 30 : 22;
+  if(!f) {
+    // Font failed to load — fallback to first letter of name
+    f = fonts_get_system_font(large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD);
+    graphics_draw_text(ctx, s_tok_name[icon], f,
+      GRect(cx-sz, cy-sz/2, sz*2, sz), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    return;
+  }
   graphics_draw_text(ctx, s_tok_char[icon], f,
-    GRect(cx-sz/2, cy-sz/2, sz, sz), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    GRect(cx-sz, cy-sz/2, sz*2, sz), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
 // ============================================================================
