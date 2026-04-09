@@ -149,11 +149,24 @@ static void roll_dice(void) {
     vibes_long_pulse();
   } else {
     s_state = ST_SELECT;
-    s_cursor = 0;
-    // Move cursor to first scoreable die
-    while(s_cursor < NUM_DICE && !die_can_score(s_cursor)) s_cursor++;
+
+    // Check if ALL active dice score (straight, 3 pairs, etc.)
+    bool all_score = true;
+    for(int i=0;i<NUM_DICE;i++) {
+      if(s_active[i] && !die_can_score(i)) { all_score=false; break; }
+    }
+    if(all_score) {
+      // Auto-select all — no decision needed
+      for(int i=0;i<NUM_DICE;i++)
+        if(s_active[i]) s_kept[i]=true;
+      s_select_score = calc_selected_score();
+      s_cursor = POS_ROLL;  // Jump to Roll button
+    } else {
+      s_cursor = 0;
+      while(s_cursor < NUM_DICE && !die_can_score(s_cursor)) s_cursor++;
+      s_select_score = 0;
+    }
   }
-  s_select_score = 0;
 }
 
 static void new_turn(void) {
