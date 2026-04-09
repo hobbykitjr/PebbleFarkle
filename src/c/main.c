@@ -143,7 +143,10 @@ static int calc_score(int vals[], int n) {
   }
   for(int v=1;v<=6;v++){
     if(cnt[v]>=3){ int b=(v==1)?1000:v*100; int m=1;
-      for(int e=3;e<cnt[v];e++) m*=2; score+=b*m; used[v]=true; }}
+      for(int e=3;e<cnt[v];e++) m*=2;
+      score+=b*m; used[v]=true;
+    }
+  }
   if(!used[1]) score+=cnt[1]*100;
   if(!used[5]) score+=cnt[5]*50;
   return score;
@@ -449,7 +452,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
         graphics_context_set_fill_color(ctx,bank_hl?GColorWhite:GColorDarkGray);
         #endif
         graphics_fill_rect(ctx,GRect(margin+btn_w+10,bot_y,btn_w,18),4,GCornersAll);
-        char bbuf[16]; snprintf(bbuf,sizeof(bbuf),"Bank %d",total);
+        char bbuf[20]; snprintf(bbuf,sizeof(bbuf),"Bank %d",total);
         graphics_context_set_text_color(ctx,bank_hl?GColorBlack:GColorWhite);
         graphics_draw_text(ctx,bbuf,f_sm,
           GRect(margin+btn_w+10,bot_y,btn_w,18),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
