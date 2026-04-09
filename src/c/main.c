@@ -28,7 +28,15 @@ enum { ST_SETUP, ST_ORDER, ST_ROLL, ST_SELECT, ST_FARKLE, ST_BANKED, ST_WIN };
 // Player tokens: Font Awesome icons
 #define NUM_TOKENS 6
 static const char *s_tok_name[] = {"Star","Heart","Diamond","Circle","Square","Bolt"};
-static const char *s_tok_char[] = {"\uf005","\uf004","\uf219","\uf111","\uf0c8","\uf0e7"};
+// Font Awesome Unicode codepoints encoded as UTF-8
+static const char *s_tok_char[] = {
+  "\xEF\x80\x85",  // U+F005 Star
+  "\xEF\x80\x84",  // U+F004 Heart
+  "\xEF\x88\x99",  // U+F219 Diamond
+  "\xEF\x84\x91",  // U+F111 Circle
+  "\xEF\x83\x88",  // U+F0C8 Square
+  "\xEF\x83\xA7",  // U+F0E7 Bolt
+};
 
 #ifdef PBL_COLOR
 static GColor tok_color(int t) {
