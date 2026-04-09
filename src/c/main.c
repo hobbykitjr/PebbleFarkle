@@ -640,8 +640,14 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
       lock_selected(); roll_dice();
     } else if(s_cursor==POS_BANK&&s_select_score>0){
       s_turn_score+=s_select_score;
+      int saved_sel=s_select_score;
       s_select_score=0;
       bank_score();
+      // If bank failed (under MIN_OPEN), restore
+      if(s_state==ST_SELECT) {
+        s_turn_score-=saved_sel;
+        s_select_score=saved_sel;
+      }
     }
   }
   else if(s_state==ST_FARKLE||s_state==ST_BANKED){
