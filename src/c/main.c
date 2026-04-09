@@ -41,6 +41,7 @@ static int s_turn_score = 0;       // Accumulated this turn (from locked dice)
 static int s_select_score = 0;     // Score of currently selected (not yet locked)
 static int s_total_score = 0;      // Banked total
 static int s_rolls = 0;            // Number of rolls this turn
+static int s_turns = 0;            // Total turns taken
 static int s_dice_remaining = 6;   // Dice available to roll
 static bool s_show_help = false;   // Scoring reference overlay
 
@@ -141,6 +142,7 @@ static void roll_dice(void) {
       s_dice_remaining++;
     }
   }
+  if(s_rolls == 0) s_turns++;
   s_rolls++;
 
   if(!has_scoring_dice()) {
@@ -309,8 +311,8 @@ static void canvas_proc(Layer *l, GContext *ctx) {
 
   // Top: total score
   graphics_context_set_text_color(ctx, GColorWhite);
-  char sbuf[24];
-  snprintf(sbuf, sizeof(sbuf), "Score: %d", s_total_score);
+  char sbuf[32];
+  snprintf(sbuf, sizeof(sbuf), "%d/10K  Turn %d", s_total_score, s_turns);
   graphics_draw_text(ctx, sbuf, f_md,
     GRect(0, big?8:4, w, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
@@ -319,9 +321,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     char tbuf[32];
     int ts = s_turn_score + s_select_score;
     if(ts > 0)
-      snprintf(tbuf, sizeof(tbuf), "Turn: +%d  Roll %d", ts, s_rolls);
-    else if(s_rolls > 0)
-      snprintf(tbuf, sizeof(tbuf), "Roll %d", s_rolls);
+      snprintf(tbuf, sizeof(tbuf), "+%d this turn", ts);
     else
       tbuf[0] = '\0';
     if(tbuf[0]) {
@@ -340,7 +340,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
   if(s_state == ST_ROLL) {
     graphics_draw_text(ctx, "SELECT to Roll", f_md,
       GRect(0, bot_y, w, 24), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
-    if(s_rolls == 0 && s_total_score == 0) {
+    if(s_total_score == 0) {
       graphics_draw_text(ctx, "Need 500 to open", f_sm,
         GRect(0, bot_y+22, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     }
@@ -431,13 +431,17 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     #ifdef PBL_COLOR
     graphics_context_set_text_color(ctx, GColorYellow);
     #endif
-    char wbuf[24];
+    char wbuf[32];
     snprintf(wbuf, sizeof(wbuf), "YOU WIN! %d", s_total_score);
+    char tbuf2[16];
+    snprintf(tbuf2, sizeof(tbuf2), "in %d turns", s_turns);
     graphics_draw_text(ctx, wbuf, f_lg,
       GRect(0, bot_y-4, w, 32), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, "SELECT for new game", f_sm,
+    graphics_draw_text(ctx, tbuf2, f_sm,
       GRect(0, bot_y+24, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx, "SELECT for new game", f_sm,
+      GRect(0, bot_y+38, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
 
   // Scoring reference overlay (hold UP)
@@ -556,6 +560,7 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
   }
   else if(s_state == ST_WIN) {
     s_total_score = 0;
+    s_turns = 0;
     new_turn();
   }
   if(s_canvas) layer_mark_dirty(s_canvas);
