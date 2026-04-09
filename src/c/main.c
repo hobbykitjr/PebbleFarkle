@@ -582,7 +582,17 @@ static void canvas_proc(Layer *l, GContext *ctx) {
 // BUTTON HANDLERS
 // ============================================================================
 static bool pos_valid(int pos) {
-  if(pos<NUM_DICE) return s_active[pos]&&(s_kept[pos]||die_can_score(pos));
+  if(pos<NUM_DICE) {
+    if(!s_active[pos]) return false;
+    if(s_locked[pos]) return false;
+    // Skip kept dice that are part of an auto-selected group (non-1/5)
+    // Only stop on kept dice if they're individually toggleable (1s and 5s)
+    if(s_kept[pos]) {
+      int v=s_dice[pos];
+      return (v==1||v==5);
+    }
+    return die_can_score(pos);
+  }
   if(pos==POS_ROLL||pos==POS_BANK) return s_select_score>0;
   return false;
 }
