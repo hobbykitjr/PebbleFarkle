@@ -703,8 +703,8 @@ static void win_unload(Window *w) {
 // ============================================================================
 static void init(void) {
   srand(time(NULL));
-  s_icon_font_20=fonts_load_custom_font_from_resource(RESOURCE_ID_ICON_FONT_20);
-  s_icon_font_14=fonts_load_custom_font_from_resource(RESOURCE_ID_ICON_FONT_14);
+  s_icon_font_20=fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ICON_FONT_20));
+  s_icon_font_14=fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ICON_FONT_14));
   s_win=window_create();
   window_set_background_color(s_win,GColorBlack);
   window_set_window_handlers(s_win,(WindowHandlers){.load=win_load,.unload=win_unload});
