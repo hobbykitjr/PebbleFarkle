@@ -312,64 +312,68 @@ static void canvas_proc(Layer *l, GContext *ctx) {
   if(s_state==ST_SETUP) {
     graphics_context_set_text_color(ctx,GColorWhite);
     graphics_draw_text(ctx,"FARKLE",f_lg,
-      GRect(0,h*10/100,w,34),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-    graphics_draw_text(ctx,"How many players?",f_sm,
-      GRect(0,h*25/100,w,18),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+      GRect(0,h*12/100,w,34),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
 
-    // Player count options
+    // Centered picker: UP/DOWN cycles through options
     const char *opts[]={"Solo","2 Players","3 Players","4 Players","5 Players","6 Players"};
-    int oy=h*35/100;
-    int row_h=big?26:22;
-    for(int i=0;i<6;i++){
-      bool sel=(s_setup_cursor==i);
-      if(sel){
-        #ifdef PBL_COLOR
-        graphics_context_set_fill_color(ctx,GColorFromHEX(0x006600));
-        #else
-        graphics_context_set_fill_color(ctx,GColorWhite);
-        #endif
-        int mx=big?40:20;
-        graphics_fill_rect(ctx,GRect(mx,oy,w-mx*2,row_h),4,GCornersAll);
-      }
-      #ifdef PBL_COLOR
-      graphics_context_set_text_color(ctx,sel?GColorWhite:GColorLightGray);
-      #else
-      graphics_context_set_text_color(ctx,sel?GColorBlack:GColorWhite);
-      #endif
-      graphics_draw_text(ctx,opts[i],sel?f_md:f_sm,
-        GRect(0,oy+2,w,row_h),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-      oy+=row_h;
-    }
+    int cy=h*42/100;
+
+    // Arrows
+    graphics_draw_text(ctx,"^",f_md,
+      GRect(0,cy-28,w,22),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+    graphics_draw_text(ctx,"v",f_md,
+      GRect(0,cy+26,w,22),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+
+    // Current selection (big, highlighted)
+    #ifdef PBL_COLOR
+    graphics_context_set_fill_color(ctx,GColorFromHEX(0x006600));
+    #else
+    graphics_context_set_fill_color(ctx,GColorWhite);
+    #endif
+    int mx=big?50:30;
+    graphics_fill_rect(ctx,GRect(mx,cy-2,w-mx*2,30),6,GCornersAll);
+    #ifdef PBL_COLOR
     graphics_context_set_text_color(ctx,GColorWhite);
-    graphics_draw_text(ctx,"Hold UP: Scores  Hold DOWN: Rules",f_sm,
-      GRect(0,h-20,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-    // Fall through to overlays below
+    #else
+    graphics_context_set_text_color(ctx,GColorBlack);
+    #endif
+    graphics_draw_text(ctx,opts[s_setup_cursor],f_lg,
+      GRect(0,cy-2,w,30),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+
+    graphics_context_set_text_color(ctx,GColorWhite);
+    graphics_draw_text(ctx,"SELECT to start",f_sm,
+      GRect(0,h*68/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+    graphics_draw_text(ctx,"Hold DOWN: Rules",f_sm,
+      GRect(0,h*76/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
   }
 
-  // ======== ORDER SCREEN ========
+  // ======== TOKEN SCREEN (multiplayer) ========
   else if(s_state==ST_ORDER) {
     graphics_context_set_text_color(ctx,GColorWhite);
-    graphics_draw_text(ctx,"Turn Order",f_lg,
-      GRect(0,h*8/100,w,34),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-    graphics_draw_text(ctx,"Pick your token!",f_sm,
-      GRect(0,h*22/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+    graphics_draw_text(ctx,"Choose Tokens!",f_lg,
+      GRect(0,h*10/100,w,34),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
 
-    int oy=h*32/100;
-    int row_h=big?28:24;
+    // Show icons in a row or grid
+    int icon_sz=big?16:12;
+    int spacing=big?44:34;
+    int cols=(s_num_players<=3)?s_num_players:3;
+    int rows=(s_num_players+2)/3;
+    int gy=h*35/100;
     for(int i=0;i<s_num_players;i++){
-      int pi=s_order[i];
-      int ix=w/2-40;
-      draw_icon(ctx,ix,oy+row_h/2,s_players[pi].icon,big?12:10);
-      char lbl[20];
-      snprintf(lbl,sizeof(lbl),"%d. %s",i+1,s_icon_names[s_players[pi].icon]);
+      int r=i/3, c=i%3;
+      int ix=w/2-(cols*spacing)/2+c*spacing+spacing/2;
+      int iy=gy+r*(icon_sz*2+8);
+      draw_icon(ctx,ix,iy,s_players[i].icon,icon_sz);
       graphics_context_set_text_color(ctx,GColorWhite);
-      graphics_draw_text(ctx,lbl,f_sm,
-        GRect(ix+12,oy+4,w/2+20,18),GTextOverflowModeTrailingEllipsis,GTextAlignmentLeft,NULL);
-      oy+=row_h;
+      graphics_draw_text(ctx,s_icon_names[s_players[i].icon],f_sm,
+        GRect(ix-spacing/2,iy+icon_sz,spacing,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
     }
+
     graphics_context_set_text_color(ctx,GColorWhite);
-    graphics_draw_text(ctx,"SELECT to start!",f_md,
-      GRect(0,h*82/100,w,24),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+    graphics_draw_text(ctx,"Pick tokens, then",f_sm,
+      GRect(0,h*70/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+    graphics_draw_text(ctx,"SELECT to randomize & go!",f_md,
+      GRect(0,h*78/100,w,24),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
   }
 
   // ======== GAME SCREENS ========
@@ -524,8 +528,8 @@ static void canvas_proc(Layer *l, GContext *ctx) {
 
   // ======== OVERLAYS ========
 
-  // Scoreboard (hold UP)
-  if(s_show_scores && s_num_players>1) {
+  // Scoreboard (hold UP — only during gameplay, multiplayer only)
+  if(s_show_scores && s_num_players>1 && s_state>=ST_ROLL) {
     graphics_context_set_fill_color(ctx,GColorBlack);
     int pad=big?25:15;
     graphics_fill_rect(ctx,GRect(pad,pad,w-pad*2,h-pad*2),8,GCornersAll);
