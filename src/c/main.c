@@ -193,7 +193,7 @@ static void next_player(void) {
 
 static void bank_score(void) {
   Player *p=cur_player();
-  int total=s_turn_score+s_select_score;
+  int total=s_turn_score;
   if(p->score==0 && total<MIN_OPEN) return;
   p->score+=total;
   s_state=ST_BANKED;
@@ -639,7 +639,9 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
     } else if(s_cursor==POS_ROLL&&s_select_score>0){
       lock_selected(); roll_dice();
     } else if(s_cursor==POS_BANK&&s_select_score>0){
-      s_turn_score+=s_select_score; bank_score();
+      s_turn_score+=s_select_score;
+      s_select_score=0;
+      bank_score();
     }
   }
   else if(s_state==ST_FARKLE||s_state==ST_BANKED){
