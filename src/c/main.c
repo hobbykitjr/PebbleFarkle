@@ -180,8 +180,15 @@ static void roll_dice(void) {
     for(int i=0;i<NUM_DICE;i++) if(s_active[i]&&!die_can_score(i)){all=false;break;}
     if(all){ for(int i=0;i<NUM_DICE;i++) if(s_active[i]) s_kept[i]=true;
       s_select_score=calc_selected_score(); s_cursor=POS_ROLL;
-    } else { s_cursor=0; while(s_cursor<NUM_DICE&&!die_can_score(s_cursor)) s_cursor++;
-      s_select_score=0; }
+    } else {
+      s_cursor=0;
+      while(s_cursor<NUM_DICE&&!die_can_score(s_cursor)) s_cursor++;
+      s_select_score=0;
+      // Safety: if no die is actually selectable, it's a farkle
+      if(s_cursor>=NUM_DICE) {
+        s_state=ST_FARKLE; s_turn_score=0; vibes_long_pulse();
+      }
+    }
   }
 }
 
