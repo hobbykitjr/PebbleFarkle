@@ -532,6 +532,8 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
           }
         }
         s_select_score = calc_selected_score();
+        // Jump to Roll button if score is ready
+        if(s_select_score > 0) s_cursor = POS_ROLL;
       }
     } else if(s_cursor == POS_ROLL && s_select_score > 0) {
       lock_selected();
