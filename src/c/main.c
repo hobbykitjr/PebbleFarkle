@@ -610,11 +610,16 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
         bool as_triple=(unkept>=3);
 
         if(s_kept[i]){
-          // Deselect
-          if(as_triple || (v!=1&&v!=5)) {
+          // Deselect: count how many of this value are kept
+          int kept_cnt=0;
+          for(int j=0;j<NUM_DICE;j++)
+            if(s_active[j]&&!s_locked[j]&&s_kept[j]&&s_dice[j]==v) kept_cnt++;
+          if(kept_cnt>=3) {
+            // Deselect the triplet (3 at a time)
             int rm=0; for(int j=NUM_DICE-1;j>=0;j--)
               if(s_active[j]&&!s_locked[j]&&s_dice[j]==v&&s_kept[j]&&rm<3){s_kept[j]=false;rm++;}
           } else {
+            // Individual deselect (single 1 or 5)
             s_kept[i]=false;
           }
         } else if(die_can_score(i)){
