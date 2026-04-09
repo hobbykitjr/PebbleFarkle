@@ -42,6 +42,7 @@ static int s_select_score = 0;     // Score of currently selected (not yet locke
 static int s_total_score = 0;      // Banked total
 static int s_rolls = 0;            // Number of rolls this turn
 static int s_dice_remaining = 6;   // Dice available to roll
+static bool s_show_help = false;   // Scoring reference overlay
 
 // ============================================================================
 // SCORING
@@ -149,8 +150,8 @@ static void roll_dice(void) {
   } else {
     s_state = ST_SELECT;
     s_cursor = 0;
-    // Move cursor to first active die
-    while(s_cursor < NUM_DICE && !s_active[s_cursor]) s_cursor++;
+    // Move cursor to first scoreable die
+    while(s_cursor < NUM_DICE && !die_can_score(s_cursor)) s_cursor++;
   }
   s_select_score = 0;
 }
@@ -425,6 +426,45 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     graphics_draw_text(ctx, "SELECT for new game", f_sm,
       GRect(0, bot_y+24, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
+
+  // Scoring reference overlay (hold UP)
+  if(s_show_help) {
+    // Dark background
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    int pad = big ? 20 : 10;
+    graphics_fill_rect(ctx, GRect(pad, pad, w-pad*2, h-pad*2), 8, GCornersAll);
+
+    graphics_context_set_text_color(ctx, GColorWhite);
+    int ly = pad + 4;
+    int lh = big ? 18 : 15;
+    GFont hf = f_md;
+    GFont sf = f_sm;
+
+    graphics_draw_text(ctx, "SCORING", hf,
+      GRect(pad, ly, w-pad*2, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    ly += lh + 6;
+
+    const char *lines[] = {
+      "Single 1 = 100",
+      "Single 5 = 50",
+      "Three 1s = 1000",
+      "Three Xs = X*100",
+      "4-of-kind = 2x",
+      "5-of-kind = 4x",
+      "6-of-kind = 8x",
+      "Straight = 1500",
+      "3 Pairs = 1500",
+      "2 Trips = 2500",
+    };
+    #ifdef PBL_COLOR
+    graphics_context_set_text_color(ctx, GColorYellow);
+    #endif
+    for(int i=0; i<10 && ly < h-pad-lh; i++) {
+      graphics_draw_text(ctx, lines[i], sf,
+        GRect(pad+8, ly, w-pad*2-16, lh), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+      ly += lh;
+    }
+  }
 }
 
 // ============================================================================
@@ -454,11 +494,30 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
   }
   else if(s_state == ST_SELECT) {
     if(s_cursor < NUM_DICE) {
-      // Toggle die
+      // Toggle die — auto-select/deselect matching group for non-1/5
       int i = s_cursor;
       if(s_active[i] && !s_locked[i]) {
-        if(s_kept[i]) s_kept[i] = false;
-        else if(die_can_score(i)) s_kept[i] = true;
+        int v = s_dice[i];
+        bool is_single = (v==1 || v==5);
+        if(s_kept[i]) {
+          // Deselect
+          if(is_single) {
+            s_kept[i] = false;
+          } else {
+            // Deselect all of this value
+            for(int j=0;j<NUM_DICE;j++)
+              if(s_active[j] && !s_locked[j] && s_dice[j]==v) s_kept[j]=false;
+          }
+        } else if(die_can_score(i)) {
+          // Select
+          if(is_single) {
+            s_kept[i] = true;
+          } else {
+            // Select all of this value (triplet+)
+            for(int j=0;j<NUM_DICE;j++)
+              if(s_active[j] && !s_locked[j] && s_dice[j]==v) s_kept[j]=true;
+          }
+        }
         s_select_score = calc_selected_score();
       }
     } else if(s_cursor == POS_ROLL && s_select_score > 0) {
@@ -493,11 +552,22 @@ static void back_click(ClickRecognizerRef ref, void *ctx) {
   window_stack_pop(true);
 }
 
+// Long press UP = show scoring reference
+static void up_long_down(ClickRecognizerRef ref, void *ctx) {
+  s_show_help = true;
+  if(s_canvas) layer_mark_dirty(s_canvas);
+}
+static void up_long_up(ClickRecognizerRef ref, void *ctx) {
+  s_show_help = false;
+  if(s_canvas) layer_mark_dirty(s_canvas);
+}
+
 static void click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click);
   window_single_click_subscribe(BUTTON_ID_UP, up_click);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click);
   window_single_click_subscribe(BUTTON_ID_BACK, back_click);
+  window_long_click_subscribe(BUTTON_ID_UP, 500, up_long_down, up_long_up);
 }
 
 // ============================================================================
