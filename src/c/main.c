@@ -436,8 +436,10 @@ static void canvas_proc(Layer *l, GContext *ctx) {
         graphics_context_set_fill_color(ctx,bank_hl?GColorWhite:GColorDarkGray);
         #endif
         graphics_fill_rect(ctx,GRect(margin+btn_w+10,bot_y,btn_w,18),4,GCornersAll);
-        char bbuf[20]; snprintf(bbuf,sizeof(bbuf),"Bank %d",total);
-        graphics_context_set_text_color(ctx,bank_hl?GColorBlack:GColorWhite);
+        char bbuf[20];
+        if(can_bank) snprintf(bbuf,sizeof(bbuf),"Bank %d",total);
+        else snprintf(bbuf,sizeof(bbuf),"Need 500+");
+        graphics_context_set_text_color(ctx,bank_hl?GColorBlack:(can_bank?GColorWhite:GColorLightGray));
         graphics_draw_text(ctx,bbuf,f_sm,
           GRect(margin+btn_w+10,bot_y,btn_w,18),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
         graphics_context_set_text_color(ctx,GColorWhite);
@@ -575,7 +577,13 @@ static bool pos_valid(int pos) {
       if(s_active[j]&&s_kept[j]&&s_dice[j]==v) return false;  // Not the first — skip
     return true;  // First of the group — navigable
   }
-  if(pos==POS_ROLL||pos==POS_BANK) return s_select_score>0;
+  if(pos==POS_ROLL) return s_select_score>0;
+  if(pos==POS_BANK) {
+    if(s_select_score<=0) return false;
+    Player *p=&s_players[s_order[s_cur_idx]];
+    int total=s_turn_score+s_select_score;
+    return (p->score>0 || total>=MIN_OPEN);
+  }
   return false;
 }
 static void move_cursor(int dir) {
