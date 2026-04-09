@@ -517,18 +517,26 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
           if(is_single) {
             s_kept[i] = false;
           } else {
-            // Deselect all of this value
-            for(int j=0;j<NUM_DICE;j++)
-              if(s_active[j] && !s_locked[j] && s_dice[j]==v) s_kept[j]=false;
+            // Deselect 3 of this value (triplet)
+            int removed=0;
+            for(int j=NUM_DICE-1;j>=0;j--) {
+              if(s_active[j] && !s_locked[j] && s_dice[j]==v && s_kept[j] && removed<3) {
+                s_kept[j]=false; removed++;
+              }
+            }
           }
         } else if(die_can_score(i)) {
           // Select
           if(is_single) {
             s_kept[i] = true;
           } else {
-            // Select all of this value (triplet+)
-            for(int j=0;j<NUM_DICE;j++)
-              if(s_active[j] && !s_locked[j] && s_dice[j]==v) s_kept[j]=true;
+            // Select exactly 3 of this value (triplet)
+            int picked=0;
+            for(int j=0;j<NUM_DICE;j++) {
+              if(s_active[j] && !s_locked[j] && s_dice[j]==v && picked<3) {
+                s_kept[j]=true; picked++;
+              }
+            }
           }
         }
         s_select_score = calc_selected_score();
