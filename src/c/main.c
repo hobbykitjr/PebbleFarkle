@@ -25,21 +25,21 @@ enum { ST_SETUP, ST_ORDER, ST_ROLL, ST_SELECT, ST_FARKLE, ST_BANKED, ST_WIN };
 #define POS_BANK 7
 #define NUM_POS  8
 
-// Player icon types
-enum { ICN_STAR=0, ICN_HEART, ICN_DIAMOND, ICN_CIRCLE, ICN_SQUARE, ICN_BOLT };
-static const char *s_icon_names[] = {"Star","Heart","Diamond","Circle","Square","Bolt"};
+// Player tokens: short name + display character + color
+#define NUM_TOKENS 6
+static const char *s_tok_name[] = {"Sun","Drop","Leaf","Fire","Moon","Snow"};
+static const char *s_tok_char[] = {"O","V","W","A","C","X"};
 
-// Icon colors
 #ifdef PBL_COLOR
-static GColor icon_color(int icon) {
-  switch(icon) {
-    case ICN_STAR:    return GColorYellow;
-    case ICN_HEART:   return GColorRed;
-    case ICN_DIAMOND: return GColorCyan;
-    case ICN_CIRCLE:  return GColorGreen;
-    case ICN_SQUARE:  return GColorOrange;
-    case ICN_BOLT:    return GColorPurple;
-    default:          return GColorWhite;
+static GColor tok_color(int t) {
+  switch(t) {
+    case 0: return GColorYellow;    // Sun
+    case 1: return GColorCyan;      // Drop
+    case 2: return GColorGreen;     // Leaf
+    case 3: return GColorRed;       // Fire
+    case 4: return GColorPastelYellow; // Moon
+    case 5: return GColorPictonBlue;   // Snow
+    default: return GColorWhite;
   }
 }
 #endif
@@ -79,56 +79,15 @@ static int s_dice_remaining = 6;
 static bool s_show_help = false;    // Hold DOWN: scoring reference
 static bool s_show_scores = false;  // Hold UP: scoreboard
 
-// ============================================================================
-// ICON DRAWING (10x10 pixel icons)
-// ============================================================================
-static void draw_icon(GContext *ctx, int cx, int cy, int icon, int sz) {
+// Draw player token (colored letter)
+static void draw_token(GContext *ctx, int cx, int cy, int icon, GFont f) {
   #ifdef PBL_COLOR
-  graphics_context_set_fill_color(ctx, icon_color(icon));
+  graphics_context_set_text_color(ctx, tok_color(icon));
   #else
-  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_context_set_text_color(ctx, GColorWhite);
   #endif
-  int r = sz/2;
-  switch(icon) {
-    case ICN_STAR:
-      // 5-point star approximation
-      graphics_fill_rect(ctx, GRect(cx-r,cy-1,sz,3), 0, GCornerNone);
-      graphics_fill_rect(ctx, GRect(cx-1,cy-r,3,sz), 0, GCornerNone);
-      graphics_fill_rect(ctx, GRect(cx-r+1,cy-r+1,2,2), 0, GCornerNone);
-      graphics_fill_rect(ctx, GRect(cx+r-2,cy-r+1,2,2), 0, GCornerNone);
-      graphics_fill_rect(ctx, GRect(cx-r+1,cy+r-2,2,2), 0, GCornerNone);
-      graphics_fill_rect(ctx, GRect(cx+r-2,cy+r-2,2,2), 0, GCornerNone);
-      break;
-    case ICN_HEART: {
-      // Two bumps on top, tapered point at bottom
-      int hr=r*2/3;
-      graphics_fill_circle(ctx, GPoint(cx-hr,cy-hr/2), hr);
-      graphics_fill_circle(ctx, GPoint(cx+hr,cy-hr/2), hr);
-      // Fill middle and taper down
-      for(int y=0;y<=r+2;y++) {
-        int w2=r+2-y*r/(r+2);
-        if(w2>0) graphics_fill_rect(ctx, GRect(cx-w2,cy-2+y,w2*2+1,1), 0, GCornerNone);
-      }
-      break;
-    }
-    case ICN_DIAMOND:
-      for(int y=-r;y<=r;y++) {
-        int w2=r-abs(y);
-        graphics_fill_rect(ctx, GRect(cx-w2,cy+y,w2*2+1,1), 0, GCornerNone);
-      }
-      break;
-    case ICN_CIRCLE:
-      graphics_fill_circle(ctx, GPoint(cx,cy), r);
-      break;
-    case ICN_SQUARE:
-      graphics_fill_rect(ctx, GRect(cx-r,cy-r,sz,sz), 2, GCornersAll);
-      break;
-    case ICN_BOLT:
-      graphics_fill_rect(ctx, GRect(cx-1,cy-r,4,r), 0, GCornerNone);
-      graphics_fill_rect(ctx, GRect(cx-3,cy-1,6,3), 0, GCornerNone);
-      graphics_fill_rect(ctx, GRect(cx-2,cy+1,4,r), 0, GCornerNone);
-      break;
-  }
+  graphics_draw_text(ctx, s_tok_char[icon], f,
+    GRect(cx-10, cy-12, 20, 24), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
 // ============================================================================
@@ -353,20 +312,20 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     graphics_draw_text(ctx,"Choose Tokens!",f_lg,
       GRect(0,h*10/100,w,34),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
 
-    // Show icons in a row or grid
-    int icon_sz=big?16:12;
-    int spacing=big?44:34;
-    int cols=(s_num_players<=3)?s_num_players:3;
-    int rows=(s_num_players+2)/3;
-    int gy=h*35/100;
+    // Show tokens in a list
+    int gy=h*30/100;
+    int row_h=big?28:24;
+    int cols=(s_num_players<=3)?1:2;
+    int per_col=(s_num_players+cols-1)/cols;
     for(int i=0;i<s_num_players;i++){
-      int r=i/3, c=i%3;
-      int ix=w/2-(cols*spacing)/2+c*spacing+spacing/2;
-      int iy=gy+r*(icon_sz*2+8);
-      draw_icon(ctx,ix,iy,s_players[i].icon,icon_sz);
+      int c=i/per_col, r=i%per_col;
+      int col_w=w/cols;
+      int tx=c*col_w+col_w/2;
+      int ty=gy+r*row_h;
+      draw_token(ctx,tx-20,ty+row_h/2,s_players[i].icon,f_lg);
       graphics_context_set_text_color(ctx,GColorWhite);
-      graphics_draw_text(ctx,s_icon_names[s_players[i].icon],f_sm,
-        GRect(ix-spacing/2,iy+icon_sz,spacing,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
+      graphics_draw_text(ctx,s_tok_name[s_players[i].icon],f_md,
+        GRect(tx-8,ty+2,col_w/2+8,row_h),GTextOverflowModeTrailingEllipsis,GTextAlignmentLeft,NULL);
     }
 
     graphics_context_set_text_color(ctx,GColorWhite);
@@ -397,7 +356,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     Player *p=cur_player();
     int top_y=big?4:2;
     if(s_num_players>1) {
-      draw_icon(ctx,w/2,top_y+7,p->icon,big?12:10);
+      draw_token(ctx,w/2,top_y+2,p->icon,f_md);
       top_y+=big?16:14;
     }
     graphics_context_set_text_color(ctx,GColorWhite);
@@ -503,7 +462,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       #endif
       char wbuf[32];
       if(s_num_players>1) {
-        snprintf(wbuf,sizeof(wbuf),"%s WINS!",s_icon_names[p->icon]);
+        snprintf(wbuf,sizeof(wbuf),"%s WINS!",s_tok_name[p->icon]);
       } else {
         snprintf(wbuf,sizeof(wbuf),"YOU WIN!");
       }
@@ -541,9 +500,9 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     for(int i=0;i<s_num_players;i++){
       int pi=s_order[i];
       bool cur=(i==s_cur_idx);
-      draw_icon(ctx,pad+16,ly+lh/2,s_players[pi].icon,big?10:8);
+      draw_token(ctx,pad+14,ly+lh/2,s_players[pi].icon,f_sm);
       char lbl[24];
-      snprintf(lbl,sizeof(lbl),"%s: %d",s_icon_names[s_players[pi].icon],s_players[pi].score);
+      snprintf(lbl,sizeof(lbl),"%s: %d",s_tok_name[s_players[pi].icon],s_players[pi].score);
       #ifdef PBL_COLOR
       graphics_context_set_text_color(ctx,cur?GColorYellow:GColorWhite);
       #endif
