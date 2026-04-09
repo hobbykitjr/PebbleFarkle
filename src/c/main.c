@@ -627,7 +627,14 @@ static void select_click(ClickRecognizerRef ref, void *ctx) {
           }
         }
         s_select_score=calc_selected_score();
-        if(s_select_score>0) s_cursor=POS_ROLL;
+        // Move to next selectable die forward, or Roll if none left
+        if(s_select_score>0) {
+          bool found=false;
+          for(int j=s_cursor+1;j<NUM_DICE;j++) {
+            if(pos_valid(j)&&!s_kept[j]) { s_cursor=j; found=true; break; }
+          }
+          if(!found) s_cursor=POS_ROLL;
+        }
       }
     } else if(s_cursor==POS_ROLL&&s_select_score>0){
       lock_selected(); roll_dice();
