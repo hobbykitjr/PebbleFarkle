@@ -116,14 +116,16 @@ static bool has_scoring_dice(void) {
 }
 
 // Check if individual die contributes to scoring
+// Only considers unkept active dice (not already selected)
 static bool die_can_score(int idx) {
   if(!s_active[idx]) return false;
+  if(s_kept[idx]) return true;  // Already kept — always "scoreable"
   int v = s_dice[idx];
   if(v==1 || v==5) return true;
-  // Check if part of 3+ of a kind among active dice
+  // Check if part of 3+ of a kind among UNKEPT active dice
   int cnt=0;
   for(int i=0;i<NUM_DICE;i++) {
-    if(s_active[i] && s_dice[i]==v) cnt++;
+    if(s_active[i] && !s_locked[i] && !s_kept[i] && s_dice[i]==v) cnt++;
   }
   return cnt >= 3;
 }
