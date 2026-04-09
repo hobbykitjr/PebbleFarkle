@@ -17,7 +17,20 @@
       "watchface": false
     },
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "font",
+          "name": "ICON_FONT_20",
+          "file": "resources/icons_20.ttf",
+          "characterRegex": "[\\uf004\\uf005\\uf0c8\\uf0e7\\uf111\\uf219]"
+        },
+        {
+          "type": "font",
+          "name": "ICON_FONT_14",
+          "file": "resources/icons_14.ttf",
+          "characterRegex": "[\\uf004\\uf005\\uf0c8\\uf0e7\\uf111\\uf219]"
+        }
+      ]
     }
   }
 }

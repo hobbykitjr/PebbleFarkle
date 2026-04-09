@@ -25,24 +25,28 @@ enum { ST_SETUP, ST_ORDER, ST_ROLL, ST_SELECT, ST_FARKLE, ST_BANKED, ST_WIN };
 #define POS_BANK 7
 #define NUM_POS  8
 
-// Player tokens: short name + display character + color
+// Player tokens: Font Awesome icons
 #define NUM_TOKENS 6
-static const char *s_tok_name[] = {"Sun","Drop","Leaf","Fire","Moon","Snow"};
-static const char *s_tok_char[] = {"O","V","W","A","C","X"};
+static const char *s_tok_name[] = {"Star","Heart","Diamond","Circle","Square","Bolt"};
+static const char *s_tok_char[] = {"\uf005","\uf004","\uf219","\uf111","\uf0c8","\uf0e7"};
 
 #ifdef PBL_COLOR
 static GColor tok_color(int t) {
   switch(t) {
-    case 0: return GColorYellow;    // Sun
-    case 1: return GColorCyan;      // Drop
-    case 2: return GColorGreen;     // Leaf
-    case 3: return GColorRed;       // Fire
-    case 4: return GColorPastelYellow; // Moon
-    case 5: return GColorPictonBlue;   // Snow
+    case 0: return GColorYellow;       // Star
+    case 1: return GColorRed;          // Heart
+    case 2: return GColorCyan;         // Diamond
+    case 3: return GColorGreen;        // Circle
+    case 4: return GColorOrange;       // Square
+    case 5: return GColorPurple;       // Bolt
     default: return GColorWhite;
   }
 }
 #endif
+
+// Custom icon fonts (loaded from resources)
+static GFont s_icon_font_20;
+static GFont s_icon_font_14;
 
 // ============================================================================
 // PLAYER DATA
@@ -79,15 +83,17 @@ static int s_dice_remaining = 6;
 static bool s_show_help = false;    // Hold DOWN: scoring reference
 static bool s_show_scores = false;  // Hold UP: scoreboard
 
-// Draw player token (colored letter)
-static void draw_token(GContext *ctx, int cx, int cy, int icon, GFont f) {
+// Draw player token (Font Awesome icon, colored)
+static void draw_token(GContext *ctx, int cx, int cy, int icon, bool large) {
   #ifdef PBL_COLOR
   graphics_context_set_text_color(ctx, tok_color(icon));
   #else
   graphics_context_set_text_color(ctx, GColorWhite);
   #endif
+  GFont f = large ? s_icon_font_20 : s_icon_font_14;
+  int sz = large ? 24 : 18;
   graphics_draw_text(ctx, s_tok_char[icon], f,
-    GRect(cx-10, cy-12, 20, 24), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    GRect(cx-sz/2, cy-sz/2, sz, sz), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
 // ============================================================================
@@ -322,7 +328,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       int col_w=w/cols;
       int tx=c*col_w+col_w/2;
       int ty=gy+r*row_h;
-      draw_token(ctx,tx-20,ty+row_h/2,s_players[i].icon,f_lg);
+      draw_token(ctx,tx-20,ty+row_h/2,s_players[i].icon,true);
       graphics_context_set_text_color(ctx,GColorWhite);
       graphics_draw_text(ctx,s_tok_name[s_players[i].icon],f_md,
         GRect(tx-8,ty+2,col_w/2+8,row_h),GTextOverflowModeTrailingEllipsis,GTextAlignmentLeft,NULL);
@@ -356,7 +362,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     Player *p=cur_player();
     int top_y=big?4:2;
     if(s_num_players>1) {
-      draw_token(ctx,w/2,top_y+2,p->icon,f_md);
+      draw_token(ctx,w/2,top_y+2,p->icon,true);
       top_y+=big?16:14;
     }
     graphics_context_set_text_color(ctx,GColorWhite);
@@ -500,7 +506,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     for(int i=0;i<s_num_players;i++){
       int pi=s_order[i];
       bool cur=(i==s_cur_idx);
-      draw_token(ctx,pad+14,ly+lh/2,s_players[pi].icon,f_sm);
+      draw_token(ctx,pad+14,ly+lh/2,s_players[pi].icon,false);
       char lbl[24];
       snprintf(lbl,sizeof(lbl),"%s: %d",s_tok_name[s_players[pi].icon],s_players[pi].score);
       #ifdef PBL_COLOR
@@ -697,12 +703,18 @@ static void win_unload(Window *w) {
 // ============================================================================
 static void init(void) {
   srand(time(NULL));
+  s_icon_font_20=fonts_load_custom_font_from_resource(RESOURCE_ID_ICON_FONT_20);
+  s_icon_font_14=fonts_load_custom_font_from_resource(RESOURCE_ID_ICON_FONT_14);
   s_win=window_create();
   window_set_background_color(s_win,GColorBlack);
   window_set_window_handlers(s_win,(WindowHandlers){.load=win_load,.unload=win_unload});
   window_stack_push(s_win,true);
 }
 
-static void deinit(void) { window_destroy(s_win); }
+static void deinit(void) {
+  window_destroy(s_win);
+  fonts_unload_custom_font(s_icon_font_20);
+  fonts_unload_custom_font(s_icon_font_14);
+}
 
 int main(void) { init(); app_event_loop(); deinit(); return 0; }
