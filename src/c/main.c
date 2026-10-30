@@ -367,7 +367,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       graphics_context_set_text_color(ctx,GColorWhite);
     }
 
-    graphics_draw_text(ctx,"SELECT to start",f_sm,
+    graphics_draw_text(ctx,"TAP/SELECT to start",f_sm,
       GRect(0,h*72/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
     graphics_draw_text(ctx,"Hold DOWN: Rules",f_sm,
       GRect(0,h*80/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
@@ -398,7 +398,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     graphics_context_set_text_color(ctx,GColorWhite);
     graphics_draw_text(ctx,"Pick tokens, then",f_sm,
       GRect(0,h*70/100,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-    graphics_draw_text(ctx,"SELECT to randomize & go!",f_md,
+    graphics_draw_text(ctx,"TAP/SELECT to go!",f_md,
       GRect(0,h*78/100,w,24),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
   }
 
@@ -450,7 +450,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     int bot_y=row2_y+die_sz/2+gap+4;
 
     if(s_state==ST_ROLL){
-      graphics_draw_text(ctx,"SELECT to Roll",f_md,
+      graphics_draw_text(ctx,"TAP/SELECT to Roll",f_md,
         GRect(0,bot_y,w,24),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
       if(p->score==0)
         graphics_draw_text(ctx,"Need 500 to open",f_sm,
@@ -460,7 +460,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       bool has_sel=s_select_score>0;
       g_btns_visible=false;
       if(!has_sel){
-        graphics_draw_text(ctx,"SELECT to keep dice",f_sm,
+        graphics_draw_text(ctx,"TAP/SELECT to keep dice",f_sm,
           GRect(0,bot_y,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
       } else {
         int total=s_turn_score+s_select_score;
@@ -517,7 +517,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       graphics_draw_text(ctx,"FARKLE!",f_lg,
         GRect(0,bot_y-4,w,32),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
       graphics_context_set_text_color(ctx,GColorWhite);
-      const char *msg=(s_num_players>1)?"SELECT: next player":"SELECT to continue";
+      const char *msg=(s_num_players>1)?"TAP/SELECT: next":"TAP/SELECT to continue";
       graphics_draw_text(ctx,msg,f_sm,
         GRect(0,bot_y+24,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
     }
@@ -528,7 +528,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       graphics_draw_text(ctx,"BANKED!",f_lg,
         GRect(0,bot_y-4,w,32),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
       graphics_context_set_text_color(ctx,GColorWhite);
-      const char *msg=(s_num_players>1)?"SELECT: next player":"SELECT to continue";
+      const char *msg=(s_num_players>1)?"TAP/SELECT: next":"TAP/SELECT to continue";
       graphics_draw_text(ctx,msg,f_sm,
         GRect(0,bot_y+24,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
     }
@@ -548,7 +548,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
       char tbuf2[24]; snprintf(tbuf2,sizeof(tbuf2),"%d pts in %d rounds",p->score,s_rounds);
       graphics_draw_text(ctx,tbuf2,f_sm,
         GRect(0,bot_y+24,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
-      graphics_draw_text(ctx,"SELECT for new game",f_sm,
+      graphics_draw_text(ctx,"TAP/SELECT for new game",f_sm,
         GRect(0,bot_y+38,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
     }
 
