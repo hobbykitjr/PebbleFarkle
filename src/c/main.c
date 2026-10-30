@@ -107,6 +107,7 @@ static uint32_t s_last_tap_time = 0;
 static int g_die_cx[NUM_DICE], g_die_cy[NUM_DICE], g_die_sz;
 static GRect g_btn_roll, g_btn_bank;
 static bool g_btns_visible = false;
+static int g_picker_top = 0, g_picker_bot = 0;
 
 // Draw player token (Font Awesome icon, colored)
 static void draw_token(GContext *ctx, int cx, int cy, int icon, bool large) {
@@ -345,6 +346,8 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     graphics_context_set_fill_color(ctx,GColorWhite);
     #endif
     int mx=big?50:30;
+    g_picker_top=cy-2;
+    g_picker_bot=cy-2+30;
     graphics_fill_rect(ctx,GRect(mx,cy-2,w-mx*2,30),6,GCornersAll);
     #ifdef PBL_COLOR
     graphics_context_set_text_color(ctx,GColorWhite);
@@ -613,8 +616,10 @@ static void canvas_proc(Layer *l, GContext *ctx) {
   }
 }
 
-// Forward declaration for touch handler
+// Forward declarations for touch handler
 static void select_click(ClickRecognizerRef ref, void *ctx);
+static void up_click(ClickRecognizerRef ref, void *ctx);
+static void down_click(ClickRecognizerRef ref, void *ctx);
 
 // ============================================================================
 // TOUCH HANDLER
@@ -645,6 +650,13 @@ static void touch_handler(const TouchEvent *event, void *context) {
   s_last_tap_time = now;
 
   int tx=event->x, ty=event->y;
+
+  if(s_touch_direct && s_state==ST_SETUP) {
+    if(ty < g_picker_top) up_click(NULL, NULL);
+    else if(ty > g_picker_bot) down_click(NULL, NULL);
+    else select_click(NULL, NULL);
+    return;
+  }
 
   if(s_touch_direct && s_state==ST_SELECT) {
     // Tap a die → move cursor + toggle
