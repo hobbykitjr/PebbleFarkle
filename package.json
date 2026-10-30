@@ -15,13 +15,6 @@
         "resources": {
             "media": [
                 {
-                    "file": "images/menu_icon.png",
-                    "menuIcon": true,
-                    "name": "ICON",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
                     "characterRegex": "[\\uf004\\uf005\\uf0c8\\uf0e7\\uf111\\uf219]",
                     "file": "fonts/icons_14.ttf",
                     "name": "ICON_FONT_14",
@@ -34,6 +27,13 @@
                     "name": "ICON_FONT_20",
                     "targetPlatforms": null,
                     "type": "font"
+                },
+                {
+                    "file": "images/menu_icon.png",
+                    "menuIcon": true,
+                    "name": "ICON",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
                 }
             ]
         },
@@ -47,5 +47,5 @@
             "watchface": false
         }
     },
-    "version": "1.0.0"
+    "version": "1.5.0"
 }
