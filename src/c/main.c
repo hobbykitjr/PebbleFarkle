@@ -91,11 +91,22 @@ static int s_dice_remaining = 6;
 static bool s_show_help = false;    // Hold DOWN: scoring reference
 static bool s_show_scores = false;  // Hold UP: scoreboard
 
-// High score persistence
-#define P_HI_SCORE  0
-#define P_HI_ROUNDS 1
+// Persistence keys
+#define P_HI_SCORE    0
+#define P_HI_ROUNDS   1
+#define P_TOUCH_DIRECT 2
 static int s_hi_score = 0;
 static int s_hi_rounds = 0;
+
+// Touch support
+static bool s_touch_direct = true;
+#define TAP_COOLDOWN_MS 200
+static uint32_t s_last_tap_time = 0;
+
+// Cached layout for touch hit-testing (updated each draw)
+static int g_die_cx[NUM_DICE], g_die_cy[NUM_DICE], g_die_sz;
+static GRect g_btn_roll, g_btn_bank;
+static bool g_btns_visible = false;
 
 // Draw player token (Font Awesome icon, colored)
 static void draw_token(GContext *ctx, int cx, int cy, int icon, bool large) {
@@ -400,10 +411,12 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     int row2_y=row1_y+die_sz+gap;
     int start_x=w/2-(die_sz*3+gap*2)/2+die_sz/2;
 
+    g_die_sz=die_sz;
     for(int i=0;i<NUM_DICE;i++){
       int row=i/3,col=i%3;
       int dx=start_x+col*(die_sz+gap);
       int dy=(row==0)?row1_y:row2_y;
+      g_die_cx[i]=dx; g_die_cy[i]=dy;
       draw_die(ctx,dx,dy,die_sz,s_dice[i],
         s_cursor==i&&s_state==ST_SELECT,s_kept[i],s_locked[i],s_active[i]);
     }
@@ -445,6 +458,7 @@ static void canvas_proc(Layer *l, GContext *ctx) {
     }
     else if(s_state==ST_SELECT){
       bool has_sel=s_select_score>0;
+      g_btns_visible=false;
       if(!has_sel){
         graphics_draw_text(ctx,"SELECT to keep dice",f_sm,
           GRect(0,bot_y,w,16),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
@@ -454,6 +468,10 @@ static void canvas_proc(Layer *l, GContext *ctx) {
         int margin=big?30:10;
         int btn_w=(w-margin*2-10)/2;
         bool roll_hl=(s_cursor==POS_ROLL), bank_hl=(s_cursor==POS_BANK);
+
+        g_btn_roll=GRect(margin,bot_y,btn_w,18);
+        g_btn_bank=GRect(margin+btn_w+10,bot_y,btn_w,18);
+        g_btns_visible=true;
 
         #ifdef PBL_COLOR
         graphics_context_set_fill_color(ctx,roll_hl?GColorGreen:GColorFromHEX(0x003300));
@@ -592,6 +610,81 @@ static void canvas_proc(Layer *l, GContext *ctx) {
         GRect(pad+8,ly,w-pad*2-16,lh),GTextOverflowModeTrailingEllipsis,GTextAlignmentCenter,NULL);
       ly+=lh;
     }
+  }
+}
+
+// Forward declaration for touch handler
+static void select_click(ClickRecognizerRef ref, void *ctx);
+
+// ============================================================================
+// TOUCH HANDLER
+// ============================================================================
+#ifdef PBL_TOUCH
+static int touch_hit_die(int tx, int ty) {
+  int half=g_die_sz/2;
+  for(int i=0;i<NUM_DICE;i++){
+    if(tx>=g_die_cx[i]-half && tx<=g_die_cx[i]+half &&
+       ty>=g_die_cy[i]-half && ty<=g_die_cy[i]+half)
+      return i;
+  }
+  return -1;
+}
+
+static bool point_in_rect(int tx, int ty, GRect r) {
+  return tx>=r.origin.x && tx<r.origin.x+r.size.w &&
+         ty>=r.origin.y && ty<r.origin.y+r.size.h;
+}
+
+static void touch_handler(const TouchEvent *event, void *context) {
+  (void)context;
+  if(event->type != TouchEvent_Touchdown) return;
+  time_t t; uint16_t ms;
+  time_ms(&t, &ms);
+  uint32_t now = (uint32_t)(t * 1000 + ms);
+  if(now - s_last_tap_time < TAP_COOLDOWN_MS) return;
+  s_last_tap_time = now;
+
+  int tx=event->x, ty=event->y;
+
+  if(s_touch_direct && s_state==ST_SELECT) {
+    // Tap a die → move cursor + toggle
+    int die=touch_hit_die(tx, ty);
+    if(die>=0 && die_can_score(die) && !s_locked[die]) {
+      s_cursor=die;
+      select_click(NULL, NULL);
+      return;
+    }
+    // Tap ROLL/BANK buttons
+    if(g_btns_visible) {
+      if(point_in_rect(tx, ty, g_btn_roll) && s_select_score>0) {
+        s_cursor=POS_ROLL;
+        select_click(NULL, NULL);
+        return;
+      }
+      if(point_in_rect(tx, ty, g_btn_bank) && s_select_score>0) {
+        s_cursor=POS_BANK;
+        select_click(NULL, NULL);
+        return;
+      }
+    }
+  }
+  else if(!s_touch_direct || s_state!=ST_SELECT) {
+    // Non-direct mode or non-SELECT state: tap = select_click
+    select_click(NULL, NULL);
+  }
+}
+#endif
+
+// ============================================================================
+// APPMESSAGE (config settings)
+// ============================================================================
+static void inbox_received(DictionaryIterator *iter, void *context) {
+  (void)context;
+  Tuple *t = dict_find(iter, MESSAGE_KEY_TOUCH_MODE);
+  if(t) {
+    s_touch_direct = (int)t->value->int32 != 0;
+    persist_write_int(P_TOUCH_DIRECT, s_touch_direct ? 1 : 0);
+    if(s_canvas) layer_mark_dirty(s_canvas);
   }
 }
 
@@ -771,11 +864,18 @@ static void win_load(Window *w) {
   layer_set_update_proc(s_canvas,canvas_proc);
   layer_add_child(wl,s_canvas);
   window_set_click_config_provider(w,click_config);
+  #ifdef PBL_TOUCH
+  touch_service_subscribe(touch_handler, NULL);
+  window_set_touch_bridge_disabled(w, true);
+  #endif
   s_state=ST_SETUP;
   s_setup_cursor=0;
 }
 
 static void win_unload(Window *w) {
+  #ifdef PBL_TOUCH
+  touch_service_unsubscribe();
+  #endif
   if(s_canvas){layer_destroy(s_canvas);s_canvas=NULL;}
 }
 
@@ -786,8 +886,11 @@ static void init(void) {
   srand(time(NULL));
   if(persist_exists(P_HI_SCORE)) s_hi_score=persist_read_int(P_HI_SCORE);
   if(persist_exists(P_HI_ROUNDS)) s_hi_rounds=persist_read_int(P_HI_ROUNDS);
+  if(persist_exists(P_TOUCH_DIRECT)) s_touch_direct=persist_read_int(P_TOUCH_DIRECT)!=0;
   s_icon_font_20=fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ICON_FONT_20));
   s_icon_font_14=fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ICON_FONT_14));
+  app_message_register_inbox_received(inbox_received);
+  app_message_open(64, 64);
   s_win=window_create();
   window_set_background_color(s_win,GColorBlack);
   window_set_window_handlers(s_win,(WindowHandlers){.load=win_load,.unload=win_unload});

@@ -8,7 +8,9 @@
     "pebble": {
         "displayName": "Farkle-Solo/Pass&Play",
         "enableMultiJS": false,
-        "messageKeys": [],
+        "messageKeys": {
+            "TOUCH_MODE": 0
+        },
         "projectType": "native",
         "resources": {
             "media": [
